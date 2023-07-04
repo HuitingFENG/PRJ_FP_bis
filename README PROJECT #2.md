@@ -130,7 +130,7 @@ This skeleton code provides a basic structure for your application. You can star
 Here's an example of the associated `build.sbt` file for the skeleton code provided above:
 
 ```scala
-val scalaVersion = "3.3.0"
+val scala3Version = "3.3.0"
 val h2Version = "2.1.214"
 val scalaCsvVersion = "1.3.10"
 val zioVersion = "2.0.6"

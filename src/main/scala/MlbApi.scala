@@ -7,12 +7,11 @@ import zio.http._
 import com.opencsv.CSVReader
 import java.io.FileReader
 import scala.collection.mutable.ListBuffer
+import zio.jdbc.JdbcEncoder
+import zio.interop.catz._
+import java.sql.PreparedStatement
 
-
-object MlbApi extends ZIOAppDefault {
-  // ...
-
-  case class GameData(
+case class GameData(
       date: String,
       season: Int,
       neutral: Boolean,
@@ -40,6 +39,62 @@ object MlbApi extends ZIOAppDefault {
       score1: Int,
       score2: Int
   )
+
+
+object MlbApi extends ZIOAppDefault {
+  // ...
+  
+  val createZIOPoolConfig: ULayer[ZConnectionPoolConfig] =
+    ZLayer.succeed(ZConnectionPoolConfig.default)
+
+  val properties: Map[String, String] = Map(
+    "user" -> "postgres",
+    "password" -> "postgres"
+  )
+
+  val connectionPool: ZLayer[ZConnectionPoolConfig, Throwable, ZConnectionPool] =
+    ZConnectionPool.h2mem(
+      database = "testdb",
+      props = properties
+    )
+
+  val create: ZIO[ZConnectionPool, Throwable, Unit] = ZIO.environment[ZConnectionPool] { connectionPool =>
+    connectionPool.get.flatMap { connection =>
+      val createTableSql =
+        sql"""
+          CREATE TABLE IF NOT EXISTS games (
+            date VARCHAR(10) NOT NULL,
+            season INT NOT NULL,
+            neutral BOOLEAN NOT NULL,
+            playoff BOOLEAN NOT NULL,
+            team1 VARCHAR(50) NOT NULL,
+            team2 VARCHAR(50) NOT NULL,
+            elo1Pre DOUBLE NOT NULL,
+            elo2Pre DOUBLE NOT NULL,
+            eloProb1 DOUBLE NOT NULL,
+            eloProb2 DOUBLE NOT NULL,
+            elo1Post DOUBLE NOT NULL,
+            elo2Post DOUBLE NOT NULL,
+            rating1Pre DOUBLE NOT NULL,
+            rating2Pre DOUBLE NOT NULL,
+            pitcher1 VARCHAR(50) NOT NULL,
+            pitcher2 VARCHAR(50) NOT NULL,
+            pitcher1Rgs DOUBLE NOT NULL,
+            pitcher2Rgs DOUBLE NOT NULL,
+            pitcher1Adj DOUBLE NOT NULL,
+            pitcher2Adj DOUBLE NOT NULL,
+            ratingProb1 DOUBLE NOT NULL,
+            ratingProb2 DOUBLE NOT NULL,
+            rating1Post DOUBLE NOT NULL,
+            rating2Post DOUBLE NOT NULL,
+            score1 INT NOT NULL,
+            score2 INT NOT NULL
+          )
+        """
+
+      execute(createTableSql).provide(connection)
+    }
+  }
 
   val csvFilePath: String = "mlb_elo.csv"
 
@@ -87,46 +142,50 @@ object MlbApi extends ZIOAppDefault {
   }
 
 
-  val insertGames: ZIO[ZConnectionPool, Throwable, UpdateResult] = transaction {
-    readGameData.flatMap { games =>
-      ZIO.foreach(games) { game =>
-        insert(
-          sql"INSERT INTO games(date, season, neutral, playoff, team1, team2, elo1Pre, elo2Pre, eloProb1, eloProb2, elo1Post, elo2Post, rating1Pre, rating2Pre, pitcher1, pitcher2, pitcher1Rgs, pitcher2Rgs, pitcher1Adj, pitcher2Adj, ratingProb1, ratingProb2, rating1Post, rating2Post, score1, score2)".values((
-            game.date, 
-            game.season, 
-            game.neutral, 
-            game.playoff,
-            game.team1,
-            game.team2,
-            game.elo1Pre,
-            game.elo2Pre,
-            game.eloProb1,
-            game.eloProb2,
-            game.elo1Post,
-            game.elo2Post,
-            game.rating1Pre,
-            game.rating2Pre,
-            game.pitcher1,
-            game.pitcher2,
-            game.pitcher1Rgs,
-            game.pitcher2Rgs,
-            game.pitcher1Adj,
-            game.pitcher2Adj,
-            game.ratingProb1,
-            game.ratingProb2,
-            game.rating1Post,
-            game.rating2Post,
-            game.score1,
-            game.score2))
-        )
-      }
-    }
+  val insertRows: (GameData, String) => ZIO[Any, Throwable, Unit] = (gameData, csvFilePath) => ZIO.succeed {
+    val writer = CSVWriter.open(new java.io.File(csvFilePath), append = true)
+    val values = Seq(
+      gameData.date,
+      gameData.season.toString,
+      gameData.neutral.toString,
+      gameData.playoff.toString,
+      gameData.team1,
+      gameData.team2,
+      gameData.elo1Pre.toString,
+      gameData.elo2Pre.toString,
+      gameData.eloProb1.toString,
+      gameData.eloProb2.toString,
+      gameData.elo1Post.toString,
+      gameData.elo2Post.toString,
+      gameData.rating1Pre.toString,
+      gameData.rating2Pre.toString,
+      gameData.pitcher1,
+      gameData.pitcher2,
+      gameData.pitcher1Rgs.toString,
+      gameData.pitcher2Rgs.toString,
+      gameData.pitcher1Adj.toString,
+      gameData.pitcher2Adj.toString,
+      gameData.ratingProb1.toString,
+      gameData.ratingProb2.toString,
+      gameData.rating1Post.toString,
+      gameData.rating2Post.toString,
+      gameData.score1.toString,
+      gameData.score2.toString
+    )
+    writer.writeRow(values)
+    writer.close()
   }
 
+
+
   val app: ZIO[ZConnectionPool & Server, Throwable, Unit] = for {
-    conn <- create *> insertGames
+    conn <- create *> insertRows
     _ <- Server.serve(endpoints)
   } yield ()
+
+
+
+
 
   // ...
 }

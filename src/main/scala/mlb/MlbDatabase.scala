@@ -3,7 +3,37 @@ import zio.jdbc._
 import com.github.tototoshi.csv.CSVReader
 import scala.collection.mutable.ListBuffer
 
-object MlbDatabase {
+case class GameData(
+      date: String,
+      season: Int,
+      neutral: Boolean,
+      playoff: Boolean,
+      team1: String,
+      team2: String,
+      elo1Pre: Double,
+      elo2Pre: Double,
+      eloProb1: Double,
+      eloProb2: Double,
+      elo1Post: Double,
+      elo2Post: Double,
+      rating1Pre: Double,
+      rating2Pre: Double,
+      pitcher1: String,
+      pitcher2: String,
+      pitcher1Rgs: Double,
+      pitcher2Rgs: Double,
+      pitcher1Adj: Double,
+      pitcher2Adj: Double,
+      ratingProb1: Double,
+      ratingProb2: Double,
+      rating1Post: Double,
+      rating2Post: Double,
+      score1: Int,
+      score2: Int
+  )
+
+
+object MlbDatabase extends MlbApi {
 
   def initializeDatabase: ZIO[ZConnectionPool, Throwable, Unit] =
     for {

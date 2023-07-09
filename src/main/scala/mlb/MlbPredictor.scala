@@ -4,7 +4,8 @@ import zio.random._
 import zio.duration._
 import zio.clock._
 
-object MlbPredictor extends zio.App {
+
+object MlbPredictor extends MlbApi {
   
   def predictGame(game: GameData): ZIO[Console with Random with Clock, Nothing, Unit] =
     for {

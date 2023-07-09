@@ -45,7 +45,6 @@ case class GameData(
 
 
 object MlbApi extends ZIOAppDefault {
-  // ...
   
   val createZIOPoolConfig: ULayer[ZConnectionPoolConfig] =
     ZLayer.succeed(ZConnectionPoolConfig.default)
@@ -210,4 +209,17 @@ object MlbApi extends ZIOAppDefault {
       error => ZIO.succeed(Response.fail(error)),
       result => ZIO.succeed(Response.succeed(result))
     )
+
+  val app: ZIO[ZConnectionPool & Server, Throwable, Unit] = for {
+    conn <- create *> insertRows
+    _ <- Server.serve(endpoints)
+  } yield ()
+
+  override def run: ZIO[Any, Throwable, Unit] = app.provide(createZIOPoolConfig >>> connectionPool, Server.default)
+
+  def main(args: Array[String]): Unit = {
+    MlbDatabase.getGameHistory
+    MlbPredictor.predictGame("game123")
+  }
+}
 }

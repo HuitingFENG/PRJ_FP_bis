@@ -84,14 +84,30 @@ The `GameData` case class represents a single game and contains various attribut
 
 ## Dependencies
 
-The project utilizes the following dependencies:
+The following dependencies are used in the project:
 
-- ZIO: Provides the core functional programming capabilities and concurrency model.
-- zio-jdbc: Allows interaction with the H2 database using ZIO.
-- zio-streams: Enables streaming and processing of data.
-- scala-csv: Provides CSV parsing capabilities.
-- zio-test: A testing framework for writing and executing test cases.
-- zio-test-magnolia: A ZIO Test extension for automatic derivation of testable instances.
+- **H2 Database (com.h2database:h2)**: H2 is an open-source in-memory database. It provides a fast and reliable database solution for development and testing purposes.
+
+- **ZIO (dev.zio:zio)**: ZIO is a powerful, type-safe, and composable library for asynchronous and concurrent programming in Scala. It provides a functional programming approach to building concurrent and effectful applications.
+
+- **ZIO Streams (dev.zio:zio-streams)**: ZIO Streams is a library that enables streaming and processing of data in a purely functional way. It provides abstractions for working with streams of data and performing various operations on them.
+
+- **ZIO Schema (dev.zio:zio-schema)**: ZIO Schema is a library that helps in building type-safe schemas and validating data structures. It provides a way to define complex data structures with type-level guarantees and perform validation on them.
+
+- **ZIO JDBC (dev.zio:zio-jdbc)**: ZIO JDBC is a library that integrates ZIO with JDBC (Java Database Connectivity). It provides utilities for working with databases using JDBC, allowing you to perform database operations in a purely functional way.
+
+- **ZIO JSON (dev.zio:zio-json)**: ZIO JSON is a library for JSON (JavaScript Object Notation) parsing and encoding. It provides facilities for parsing JSON data into Scala data structures and encoding Scala data structures into JSON.
+
+- **ZIO HTTP (dev.zio:zio-http)**: ZIO HTTP is a library for building HTTP clients and servers using ZIO. It provides a type-safe and purely functional way to interact with HTTP-based APIs.
+
+- **OpenCSV (com.opencsv:opencsv)**: OpenCSV is a library for reading and writing CSV (Comma-Separated Values) files. It provides utilities for parsing CSV data and converting it into structured formats.
+
+- **ZIO Interop Cats (dev.zio:zio-interop-cats)**: ZIO Interop Cats is a library that enables interoperability between ZIO and Cats, which is another popular functional programming library in Scala. It allows you to use Cats data types and functions alongside ZIO.
+
+- **Scala CSV (com.github.tototoshi:scala-csv)**: Scala CSV is a library for reading and writing CSV files in Scala. It provides utilities for parsing CSV data and working with tabular data structures.
+
+These dependencies are crucial for different aspects of the application, such as database connectivity, data processing, JSON handling, HTTP communication, and CSV file operations. They enable the implementation of the desired functionality outlined in the project requirements.
+
 
 ## Database Initialization
 

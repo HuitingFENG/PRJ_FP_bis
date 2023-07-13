@@ -1,47 +1,52 @@
 import zio._
 import zio.test._
 import zio.test.Assertion._
-import zio.test.environment._
-import zio.test.mock.Expectation._
-import zio.test.mock._
+import zio.test.environment.TestEnvironment
 
 object MlbApiSpec extends DefaultRunnableSpec {
+  val api: ULayer[MlbDatabase] = ???
 
-  def spec: ZSpec[Environment, Failure] =
-    suite("MlbApiSpec")(
+  val testEnv: ULayer[TestEnvironment] = TestEnvironment.live
+
+  override def spec: ZSpec[TestEnvironment, Any] =
+    suite("MLB API")(
       testM("initialize database") {
         for {
-          _ <- MlbDatabase.initializeDatabase.either
-        } yield assertCompletes
+          _ <- MlbApi.initDatabase.provideLayer(api)
+          teams <- MlbApi.getTeams.provideLayer(api)
+          players <- MlbApi.getPlayers.provideLayer(api)
+          games <- MlbApi.getGames.provideLayer(api)
+        } yield assert(teams.nonEmpty)(isTrue) &&
+          assert(players.nonEmpty)(isTrue) &&
+          assert(games.nonEmpty)(isTrue)
       },
-      testM("insert rows from CSV") {
-        val gameDataList = List(
-          GameData("2023-01-01", 2023, false, false, "Team A", "Team B", 1500.0, 1500.0, 0.5, 0.5, 1500.0, 1500.0, 1500.0, 1500.0, "Pitcher A", "Pitcher B", 5.0, 5.0, 0.0, 0.0, 0.5, 0.5, 1500.0, 1500.0, 5, 5),
-          GameData("2023-01-02", 2023, false, false, "Team C", "Team D", 1600.0, 1400.0, 0.6, 0.4, 1600.0, 1400.0, 1600.0, 1400.0, "Pitcher C", "Pitcher D", 6.0, 4.0, 0.0, 0.0, 0.6, 0.4, 1600.0, 1400.0, 6, 4)
-        )
+      testM("retrieve games") {
         for {
-          result <- MlbDatabase.insertRows(gameDataList).either
-        } yield assert(result)(isRight)
+          _ <- MlbApi.initDatabase.provideLayer(api)
+          games1 <- MlbApi.getGames.provideLayer(api)
+          _ <- MlbApi.insertData.provideLayer(api)
+          games2 <- MlbApi.getGames.provideLayer(api)
+        } yield assert(games1.isEmpty)(isTrue) &&
+          assert(games2.nonEmpty)(isTrue)
       },
-      testM("retrieve game history") {
-        val expectedGameDataList = List(
-          GameData("2023-01-01", 2023, false, false, "Team A", "Team B", 1500.0, 1500.0, 0.5, 0.5, 1500.0, 1500.0, 1500.0, 1500.0, "Pitcher A", "Pitcher B", 5.0, 5.0, 0.0, 0.0, 0.5, 0.5, 1500.0, 1500.0, 5, 5),
-          GameData("2023-01-02", 2023, false, false, "Team C", "Team D", 1600.0, 1400.0, 0.6, 0.4, 1600.0, 1400.0, 1600.0, 1400.0, "Pitcher C", "Pitcher D", 6.0, 4.0, 0.0, 0.0, 0.6, 0.4, 1600.0, 1400.0, 6, 4)
-        )
+      testM("predict game outcome") {
         for {
-          result <- MlbDatabase.getGameHistory.either
-        } yield assert(result)(isRight(equalTo(expectedGameDataList)))
-      },
-      testM("predict next game") {
-        val gameDataList = List(
-          GameData("2023-01-01", 2023, false, false, "Team A", "Team B", 1500.0, 1500.0, 0.5, 0.5, 1500.0, 1500.0, 1500.0, 1500.0, "Pitcher A", "Pitcher B", 5.0, 5.0, 0.0, 0.0, 0.5, 0.5, 1500.0, 1500.0, 5, 5),
-          GameData("2023-01-02", 2023, false, false, "Team C", "Team D", 1600.0, 1400.0, 0.6, 0.4, 1600.0, 1400.0, 1600.0, 1400.0, "Pitcher C", "Pitcher D", 6.0, 4.0, 0.0, 0.0, 0.6, 0.4, 1600.0, 1400.0, 6, 4)
-        )
-        val expectedPrediction = "Team A"
-        for {
-          _ <- MlbDatabase.getGameHistory.returns(gameDataList)
-          result <- MlbPredictor.predictNextGame.either
-        } yield assert(result)(isRight(equalTo(expectedPrediction)))
+          _ <- MlbApi.initDatabase.provideLayer(api)
+          game1 <- MlbApi.getGame("gameId1").provideLayer(api)
+          prediction1 <- game1.fold(ZIO.none)(MlbApi.predictOutcome).provideLayer(api)
+          _ <- MlbApi.insertData.provideLayer(api)
+          game2 <- MlbApi.getGame("gameId2").provideLayer(api)
+          prediction2 <- game2.fold(ZIO.none)(MlbApi.predictOutcome).provideLayer(api)
+        } yield assert(prediction1)(isNone) &&
+          assert(prediction2)(isSome)
       }
     )
+}
+
+object MlbApiTestRunner extends zio.App {
+  def run(args: List[String]): ZIO[ZEnv, Nothing, ExitCode] =
+    MlbApiSpec
+      .run()
+      .provideCustomLayer(MlbApi.api ++ MlbApi.testEnv)
+      .exitCode
 }

@@ -68,13 +68,43 @@ object MlbApi extends ZIOAppDefault {
   }
 
   val insertRows: ZIO[ZConnectionPool, Throwable, UpdateResult] = transaction {
+    val game: Game = Game(
+      date = "2021-10-03",
+      season = 2021,
+      neutral = false,
+      playoff = false,
+      team1 = "ATL",
+      team2 = "NYM",
+      elo1_pre = 1520.30203281876,
+      elo2_pre = 1511.6178025374,
+      elo_prob1 = 0.5468981253584034,
+      elo_prob2 = 0.45310187464159657,
+      elo1_post = 0.0, // Provide the actual value
+      elo2_post = 0.0, // Provide the actual value
+      rating1_pre = 0.0, // Provide the actual value
+      rating2_pre = 0.0, // Provide the actual value
+      pitcher1 = "", // Provide the actual value
+      pitcher2 = "", // Provide the actual value
+      pitcher1_rgs = 0.0, // Provide the actual value
+      pitcher2_rgs = 0.0, // Provide the actual value
+      pitcher1_adj = 0.0, // Provide the actual value
+      pitcher2_adj = 0.0, // Provide the actual value
+      rating_prob1 = 0.0, // Provide the actual value
+      rating_prob2 = 0.0, // Provide the actual value
+      rating1_post = 0.0, // Provide the actual value
+      rating2_post = 0.0, // Provide the actual value
+      score1 = 0, // Provide the actual value
+      score2 = 0 // Provide the actual value
+    )
+
     insert(
       sql"""
         INSERT INTO games (date, season, neutral, playoff, team1, team2, elo1_pre, elo2_pre, elo_prob1, elo_prob2, elo1_post, elo2_post, rating1_pre, rating2_pre, pitcher1, pitcher2, pitcher1_rgs, pitcher2_rgs, pitcher1_adj, pitcher2_adj, rating_prob1, rating_prob2, rating1_post, rating2_post, score1, score2)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (${game.date}, ${game.season}, ${game.neutral}, ${game.playoff}, ${game.team1}, ${game.team2}, ${game.elo1_pre}, ${game.elo2_pre}, ${game.elo_prob1}, ${game.elo_prob2}, ${game.elo1_post}, ${game.elo2_post}, ${game.rating1_pre}, ${game.rating2_pre}, ${game.pitcher1}, ${game.pitcher2}, ${game.pitcher1_rgs}, ${game.pitcher2_rgs}, ${game.pitcher1_adj}, ${game.pitcher2_adj}, ${game.rating_prob1}, ${game.rating_prob2}, ${game.rating1_post}, ${game.rating2_post}, ${game.score1}, ${game.score2})
       """
     )
   }
+
 
   def parseCsvFile(csvPath: String): ZIO[Any, Throwable, List[Game]] = {
     ZIO.succeed {
@@ -123,7 +153,7 @@ object MlbApi extends ZIOAppDefault {
   }
 
   def loadAllGames: ZIO[Any, Throwable, List[Game]] = {
-    val csvPath = "mlb_elo.csv"
+    val csvPath = "mlb_elo_latest.csv"
 
     ZIO.succeed {
       val reader = new CSVReader(new FileReader(csvPath))
